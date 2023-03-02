@@ -40,23 +40,30 @@ app.UseHttpsRedirection();
 app.UseCors(MyAllowSpecificOrigins);
 
 
-app.MapGet("api/users", (IUserRepository service) => {
+app.MapGet("api/users", (IUserRepository service) =>
+{
     return service.GetAll();
 });
 
-app.MapGet("api/user", async (IUserRepository service, string uid) => {
+app.MapGet("api/user", async (IUserRepository service, string uid) =>
+{
     return await service.GetByIdAsync(uid);
 });
 
-app.MapPost("api/delete",  (IUserRepository service, string uid) => {
-
-    User objUser = service.GetByIdAsync(uid).Result;
-    service.Delete(objUser);
+app.MapDelete("api/delete", (IUserRepository service, string uid) =>
+{
+    User? objUser = service.GetByIdAsync(uid).Result;
+    if (objUser != null)
+    {
+        service.Delete(objUser);
+        return Results.Ok();
+    }
+    return Results.NotFound();
 });
 
-app.MapPost("api/edit",  (IUserRepository service, UserDTO user) =>
+app.MapPost("api/edit", (IUserRepository service, UserDTO user) => 
 {
-    User objUser = null;
+    User? objUser = null;
     if (string.IsNullOrEmpty(user.Uid))
     {
         objUser = new User()
@@ -68,20 +75,24 @@ app.MapPost("api/edit",  (IUserRepository service, UserDTO user) =>
         };
 
         service.AddAsync(objUser);
+        return Results.Ok();
     }
     else
     {
-        objUser =  service.GetByIdAsync(user.Uid).Result;
-        objUser.Username = user.Username;
-        objUser.FirstName = user.FirstName;
-        objUser.LastName = user.LastName;
-        objUser.Email = user.Email;
+        objUser = service.GetByIdAsync(user.Uid).Result;
+        if (objUser != null)
+        {
+            objUser.Username = user.Username;
+            objUser.FirstName = user.FirstName;
+            objUser.LastName = user.LastName;
+            objUser.Email = user.Email;
 
-        service.Update(objUser);
+            service.Update(objUser);
+            return Results.Ok();
+        }
+        return Results.NotFound();
     }
-
-    return ;
-
+    
 });
 
 app.Run();
